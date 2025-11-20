@@ -4,9 +4,6 @@ import { existsSync, statSync } from "node:fs";
 import http from "node:http";
 import path from "node:path";
 
-// Check if we're running as server process (not Electron app)
-// This prevents server.js from bootstrapping Electron when run with Electron's Node runtime
-// Check all argv values since flags like --no-sandbox might be before the script path
 const isServerProcess =
   process.env.ELECTRON_RUN_AS_SERVER === "true" ||
   process.argv.some(
@@ -17,17 +14,14 @@ const isServerProcess =
 
 const APP_USER_MODEL_ID = "run.qwery.desktop";
 
-// Debug logging for server process detection
 if (isServerProcess) {
   console.log("[main.ts] Detected server process, skipping Electron bootstrap");
   console.log("[main.ts] argv:", process.argv);
   console.log("[main.ts] ELECTRON_RUN_AS_SERVER:", process.env.ELECTRON_RUN_AS_SERVER);
   
-  // Find server.js path from argv
   const serverScriptPath = process.argv.find(arg => arg?.includes("server.js"));
   if (serverScriptPath) {
     console.log("[main.ts] Importing and running server script:", serverScriptPath);
-    // Import and run server.js directly
     import(serverScriptPath).catch((error) => {
       console.error("[main.ts] Failed to import server script:", error);
       process.exit(1);
@@ -36,14 +30,9 @@ if (isServerProcess) {
     console.error("[main.ts] Server script path not found in argv");
     process.exit(1);
   }
-  
-  // Don't continue with Electron initialization
-  // The server script will handle its own execution
 }
 
-// Only initialize Electron if we're NOT running as a server process
 if (!isServerProcess) {
-  // This is the actual Electron app bootstrap - only run if not a server
   process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = "true";
   app.setName("Qwery Studio");
 
@@ -79,22 +68,15 @@ const linuxSandboxEnabled =
   process.platform === "linux" ? !userDisabledSandbox && hasSetuidChromeSandbox() : true;
 
 if (process.platform === "linux" && !linuxSandboxEnabled && !userDisabledSandbox) {
-  // Fallback to Chromium's no-sandbox mode when suid helper is unavailable
   app.commandLine.appendSwitch(" --no-sandbox");
 }
 
 const sandboxDisabled = process.platform === "linux" && !linuxSandboxEnabled;
 
-// Enable console logging in production for debugging
 if (app.isPackaged) {
-  // In packaged apps, console.log goes to system console
-  // On macOS: Console.app or terminal
-  // On Windows: Event Viewer or terminal
-  // On Linux: journalctl or terminal
   console.log("Qwery Studio Desktop - Packaged version");
 }
 
-// Use bundled server if app is packaged OR if explicitly in production mode
 const shouldUseBundledServer = app.isPackaged || process.env.NODE_ENV === "production";
 const isDevelopment = !shouldUseBundledServer;
 const devRendererUrl = process.env.ELECTRON_RENDERER_URL ?? "http://localhost:3000";
@@ -145,16 +127,12 @@ const prepareAppIcon = (): string | undefined => {
 };
 
 const startProductionServer = async (): Promise<void> => {
-  // In packaged app, server is in extraResources (outside asar)
-  // In development build, it's in the dist folder
-  // Use server.js (our custom entry point) instead of index.js
   const serverPath = app.isPackaged
     ? path.join(process.resourcesPath, "server", "server.js")
     : path.join(__dirname, "..", "server", "server.js");
   
   console.log("Starting production server at:", serverPath);
   
-  // Check if server file exists
   if (!existsSync(serverPath)) {
     throw new Error(`Server file not found at ${serverPath}`);
   }
@@ -166,22 +144,18 @@ const startProductionServer = async (): Promise<void> => {
     ...process.env,
     NODE_ENV: "production",
     PORT: String(productionServerPort),
-    ELECTRON_RUN_AS_SERVER: "true", // Prevent Electron bootstrap when running server
+    ELECTRON_RUN_AS_SERVER: "true",
   };
   
   console.log("Spawning server process");
   
-  // Use Electron's Node.js runtime directly - it's already bundled and doesn't require external dependencies
   const execPath = process.execPath;
   const execArgs: string[] = [];
   
-  // Pass --no-sandbox to server process if the renderer runs without sandbox
   if (sandboxDisabled) {
     execArgs.push("--no-sandbox");
   }
-  
-  // Pass server.js directly - Electron will run it as a script
-  // The ELECTRON_RUN_AS_SERVER env var and conditional in main.ts prevent Electron bootstrap
+
   execArgs.push(serverPath);
   
   console.log("Using Electron's Node.js runtime for server process");
@@ -190,8 +164,8 @@ const startProductionServer = async (): Promise<void> => {
   
   serverProcess = spawn(execPath, execArgs, {
     env: serverEnv,
-    cwd: serverDir, // Set working directory to server dir so package.json is found
-    stdio: ["ignore", "pipe", "pipe"], // Capture stdout and stderr
+    cwd: serverDir, 
+    stdio: ["ignore", "pipe", "pipe"],
   });
 
 
@@ -208,7 +182,6 @@ const startProductionServer = async (): Promise<void> => {
     }
   });
 
-  // Collect server output for error messages
   let serverOutput = "";
   let serverErrors = "";
   
@@ -230,7 +203,6 @@ const startProductionServer = async (): Promise<void> => {
       return;
     }
     
-    // Handle early exit
     const exitHandler = (code: number | null, signal: NodeJS.Signals | null) => {
       clearTimeout(timeout);
       const errorDetails = serverErrors || serverOutput || "No output from server";
@@ -252,7 +224,7 @@ const startProductionServer = async (): Promise<void> => {
     }, 30000);
 
     let attempts = 0;
-    const maxAttempts = 300; // 30 seconds with 100ms intervals
+    const maxAttempts = 300; 
 
     const checkServer = () => {
       attempts++;
@@ -341,11 +313,11 @@ const createMainWindow = async (): Promise<BrowserWindow> => {
     minWidth: 1024,
     minHeight: 720,
     show: false,
-    backgroundColor: "#0a0a0a", // Dark slate background
+    backgroundColor: "#0a0a0a",
     title: "Qwery Studio",
-    frame: false, // Custom frameless window for sharp, modern look
+    frame: false, 
     icon,
-    titleBarStyle: isMac ? "hidden" : undefined, // only meaningful on macOS
+    titleBarStyle: isMac ? "hidden" : undefined,
     titleBarOverlay: isMac
       ? {
           color: "#0f172a",
@@ -353,9 +325,9 @@ const createMainWindow = async (): Promise<BrowserWindow> => {
           height: 40,
         }
       : undefined,
-    transparent: false, // Solid background for sharp edges
-    roundedCorners: false, // Sharp corners (Linux)
-    vibrancy: process.platform === "darwin" ? "under-window" : undefined, // macOS vibrancy
+    transparent: false,
+    roundedCorners: false,
+    vibrancy: process.platform === "darwin" ? "under-window" : undefined,
     visualEffectState: process.platform === "darwin" ? "active" : undefined,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -367,8 +339,6 @@ const createMainWindow = async (): Promise<BrowserWindow> => {
 
   window.once("ready-to-show", () => {
     window.show();
-
-    // Enable DevTools in production for debugging (can be disabled later)
     const shouldOpenDevTools = 
       (!app.isPackaged && isDevelopment && process.env.ELECTRON_OPEN_DEVTOOLS !== "false") ||
       (process.env.DEBUG === "true") ||
@@ -395,7 +365,6 @@ const createMainWindow = async (): Promise<BrowserWindow> => {
     mainWindow = undefined;
   });
 
-  // Track maximize state changes for custom title bar
   window.on("maximize", () => {
     window.webContents.send("window:maximize-changed", true);
   });
@@ -406,7 +375,6 @@ const createMainWindow = async (): Promise<BrowserWindow> => {
   const rendererUrl = resolveRendererUrl();
   console.log("Loading renderer URL:", rendererUrl);
 
-  // Add error handlers before loading
   window.webContents.on("did-fail-load", (event, errorCode, errorDescription, validatedURL) => {
     console.error("Failed to load URL:", {
       errorCode,
@@ -414,7 +382,6 @@ const createMainWindow = async (): Promise<BrowserWindow> => {
       validatedURL,
       rendererUrl,
     });
-    // Always show error in production, and open DevTools to help debug
     if (app.isPackaged) {
       window.webContents.openDevTools({ mode: "detach" });
       window.webContents.executeJavaScript(`
@@ -433,7 +400,6 @@ const createMainWindow = async (): Promise<BrowserWindow> => {
     console.log(`[Renderer ${level}]:`, message);
   });
 
-  // Add keyboard shortcut to open DevTools (Ctrl+Shift+I or F12)
   window.webContents.on("before-input-event", (event, input) => {
     if ((input.control && input.shift && input.key.toLowerCase() === "i") || input.key === "F12") {
       window.webContents.openDevTools({ mode: "detach" });
@@ -444,7 +410,6 @@ const createMainWindow = async (): Promise<BrowserWindow> => {
     console.log("Attempting to load URL:", rendererUrl);
     await window.loadURL(rendererUrl);
     
-    // Wait a bit and check if page actually loaded
     await new Promise((resolve) => setTimeout(resolve, 2000));
     
     const pageContent = await window.webContents.executeJavaScript(`
@@ -468,7 +433,6 @@ const createMainWindow = async (): Promise<BrowserWindow> => {
       `).catch(() => ({}));
       console.log("Page debug info:", errors);
       
-      // Show helpful message if body is empty
       if (pageContent === '' || pageContent === 'NO_BODY') {
         window.webContents.executeJavaScript(`
           if (!document.body || document.body.innerHTML.trim() === '') {
@@ -485,7 +449,6 @@ const createMainWindow = async (): Promise<BrowserWindow> => {
     }
   } catch (error) {
     console.error("Failed to load renderer", error);
-    // Always show error in production
     if (app.isPackaged) {
       window.webContents.openDevTools({ mode: "detach" });
       window.webContents.executeJavaScript(`
@@ -518,7 +481,6 @@ const bootstrap = async () => {
       const serverPath = app.isPackaged
         ? path.join(process.resourcesPath, "server", "index.js")
         : path.join(__dirname, "..", "server", "index.js");
-      // Show error to user with more details
       const errorWindow = new BrowserWindow({
         width: 800,
         height: 600,
@@ -575,7 +537,6 @@ app.on("before-quit", () => {
 
 ipcMain.handle("app:get-version", () => app.getVersion());
 
-// Window control handlers for custom frame
 ipcMain.handle("window:minimize", () => {
   if (mainWindow) {
     mainWindow.minimize();
@@ -603,5 +564,5 @@ ipcMain.handle("window:is-maximized", () => {
 });
 
 void bootstrap();
-} // End of !isServerProcess conditional
+}
 

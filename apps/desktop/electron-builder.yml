@@ -41,9 +41,9 @@ extraResources:
 linux:
   icon: resources/icons/icon.png
   target:
-    #- AppImage
+    - AppImage
     - deb
-    #- tar.gz
+    - tar.gz
   category: Development
   maintainer: "Guepard Inc."
 

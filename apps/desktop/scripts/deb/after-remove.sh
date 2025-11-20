@@ -5,7 +5,6 @@ APP_DIR="/opt/QweryStudio"
 BIN_LINK="/usr/bin/qwery-studio"
 SANDBOX_PATH="${APP_DIR}/chrome-sandbox"
 DESKTOP_DEST="/usr/share/applications/qwery-studio.desktop"
-# Also remove auto-generated desktop entry if it exists
 DESKTOP_DEST_AUTO="/usr/share/applications/qwery-desktop.desktop"
 
 if [ -f "$SANDBOX_PATH" ]; then
@@ -30,8 +29,6 @@ if [ -f "$DESKTOP_DEST" ] || [ -f "$DESKTOP_DEST_AUTO" ]; then
   fi
 fi
 
-# Remove icons from all size directories
-# Using $$ to escape $ for electron-builder macro processing
 for icon_size in 16 22 24 32 48 64 128 256 512 scalable; do
   if [ "$icon_size" = "scalable" ]; then
     rm -f "/usr/share/icons/hicolor/scalable/apps/qwery-studio.png"

@@ -37,7 +37,10 @@ const menuItems: MenuItem[] = [
   {
     label: 'View',
     submenu: [
-      { label: 'Command Palette', action: () => console.log('Command Palette') },
+      {
+        label: 'Command Palette',
+        action: () => console.log('Command Palette'),
+      },
       { label: 'Toggle Sidebar', action: () => console.log('Toggle Sidebar') },
       { label: 'Toggle Theme', action: () => console.log('Toggle Theme') },
     ],
@@ -53,7 +56,10 @@ const menuItems: MenuItem[] = [
     label: 'Help',
     submenu: [
       { label: 'Documentation', action: () => console.log('Documentation') },
-      { label: 'Keyboard Shortcuts', action: () => console.log('Keyboard Shortcuts') },
+      {
+        label: 'Keyboard Shortcuts',
+        action: () => console.log('Keyboard Shortcuts'),
+      },
       { label: 'About', action: () => console.log('About') },
     ],
   },
@@ -150,9 +156,9 @@ export function DesktopTitleBar() {
     <div
       data-desktop-title-bar
       className={cn(
-        'fixed top-0 left-0 right-0 z-50 flex h-10 items-center justify-between',
-        'bg-background border-b border-border',
-        'select-none drag-region',
+        'fixed top-0 right-0 left-0 z-50 flex h-10 items-center justify-between',
+        'bg-background border-border border-b',
+        'drag-region select-none',
         'backdrop-blur-sm',
       )}
       style={
@@ -164,23 +170,23 @@ export function DesktopTitleBar() {
     >
       {/* Left: App Branding & Menu Bar */}
       <div
-        className="flex items-center h-full no-drag-region"
+        className="no-drag-region flex h-full items-center"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
         {/* App Logo/Title */}
-        <div className="flex items-center gap-2 px-3 h-full border-r border-border">
+        <div className="border-border flex h-full items-center gap-2 border-r px-3">
           <LogoImage width={24} className="h-6 w-6" />
         </div>
 
         {/* Menu Bar */}
-        <div className="flex items-center h-full">
+        <div className="flex h-full items-center">
           {menuItems.map((menu) => (
             <div key={menu.label} className="relative">
               <button
                 onClick={(e) => handleMenuClick(e, menu.label)}
                 className={cn(
-                  'px-3 h-10 flex items-center gap-1',
-                  'text-xs text-muted-foreground hover:text-foreground',
+                  'flex h-10 items-center gap-1 px-3',
+                  'text-muted-foreground hover:text-foreground text-xs',
                   'hover:bg-accent',
                   'transition-colors duration-100',
                   'focus:outline-none',
@@ -197,16 +203,16 @@ export function DesktopTitleBar() {
                   className="absolute top-full left-0 mt-0.5 min-w-[180px]"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="bg-popover border border-border rounded-md shadow-xl overflow-hidden">
+                  <div className="bg-popover border-border overflow-hidden rounded-md border shadow-xl">
                     {menu.submenu.map((item, idx) => (
                       <button
                         key={idx}
                         onClick={() => handleMenuItemClick(item)}
                         className={cn(
-                          'w-full px-3 py-1.5 text-left text-xs text-popover-foreground',
+                          'text-popover-foreground w-full px-3 py-1.5 text-left text-xs',
                           'hover:bg-accent hover:text-accent-foreground',
                           'transition-colors duration-75',
-                          'focus:outline-none focus:bg-accent',
+                          'focus:bg-accent focus:outline-none',
                         )}
                       >
                         {item.label}
@@ -222,7 +228,7 @@ export function DesktopTitleBar() {
 
       {/* Right: Window Controls */}
       <div
-        className="flex items-center no-drag-region"
+        className="no-drag-region flex items-center"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
         <button
@@ -257,7 +263,7 @@ export function DesktopTitleBar() {
           onClick={handleClose}
           className={cn(
             'flex h-10 w-12 items-center justify-center',
-            'text-muted-foreground hover:text-white hover:bg-destructive',
+            'text-muted-foreground hover:bg-destructive hover:text-white',
             'transition-colors duration-150',
             'focus:outline-none',
           )}
@@ -269,4 +275,3 @@ export function DesktopTitleBar() {
     </div>
   );
 }
-

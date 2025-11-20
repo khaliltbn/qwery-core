@@ -30,14 +30,12 @@ const copyRenderer = async () => {
   await mkdir(targetRendererDir, { recursive: true });
   await cp(webBuildClientDir, targetRendererDir, { recursive: true, dereference: true });
   
-  // Copy server build for production SSR
   try {
     await stat(webBuildServerDir);
     await rm(targetServerDir, { recursive: true, force: true });
     await mkdir(targetServerDir, { recursive: true });
     await cp(webBuildServerDir, targetServerDir, { recursive: true, dereference: true });
     
-    // Add package.json with "type": "module" so Node.js treats server files as ES modules
     const { writeFile } = await import("node:fs/promises");
     const serverPackageJson = JSON.stringify({ 
       type: "module"
@@ -48,7 +46,6 @@ const copyRenderer = async () => {
       "utf-8"
     );
     
-    // Create server entry point that can be run directly
     const serverEntryCode = `import { createRequestListener } from "@react-router/node";
 import * as serverBuild from "./index.js";
 import http from "node:http";
@@ -222,7 +219,6 @@ process.on("SIGINT", () => {
       "utf-8"
     );
 
-    // Bundle server runtime dependencies that aren't part of the compiled build output
     const { createRequire } = await import("node:module");
     const { readFile } = await import("node:fs/promises");
     const webPackageJsonPath = path.join(rootDir, "web/package.json");
@@ -230,7 +226,6 @@ process.on("SIGINT", () => {
 
     const seenDependencies = new Set();
     /**
-     * Resolve the root directory for a module even if package.json is not exported.
      * @param {string} moduleName
      * @returns {Promise<{ packageJsonPath: string, moduleDir: string } | undefined>}
      */
@@ -238,10 +233,8 @@ process.on("SIGINT", () => {
       try {
         let packageJsonPath;
           try {
-            // Try resolving relative to web/
             packageJsonPath = require.resolve(`${moduleName}/package.json`);
           } catch {
-            // Fallback: look in the root of the monorepo
             const { createRequire } = await import("node:module");
             const rootRequire = createRequire(path.join(rootDir, "package.json"));
             try {

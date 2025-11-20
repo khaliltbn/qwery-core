@@ -23,7 +23,6 @@ else
   echo "Executable not found at $EXEC_PATH" >&2
 fi
 
-# Remove any auto-generated desktop entries from electron-builder
 rm -f /usr/share/applications/qwery-desktop.desktop
 
 if [ -f "$DESKTOP_SRC" ]; then
@@ -36,11 +35,8 @@ else
 fi
 
 if [ -f "$ICON_SRC" ]; then
-  # Install icon in multiple sizes for better compatibility
-  # Using $$ to escape $ for electron-builder macro processing
   for icon_size in 16 22 24 32 48 64 128 256 512 scalable; do
     if [ "$icon_size" = "scalable" ]; then
-      # For scalable, use the 512x512 icon (or create symlink)
       install -Dm644 "$ICON_SRC" "/usr/share/icons/hicolor/scalable/apps/qwery-studio.png"
     else
       install -Dm644 "$ICON_SRC" "/usr/share/icons/hicolor/$${icon_size}x$${icon_size}/apps/qwery-studio.png"
