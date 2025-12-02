@@ -10,4 +10,4 @@ catalog:
 onlyBuiltDependencies:
   - '@tailwindcss/oxide'
   - '@sentry/cli'
-  - 'better-sqlite3'
+  - better-sqlite3

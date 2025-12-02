@@ -8,6 +8,7 @@ import { printInteractiveResult } from '../utils/output';
 import { colored, colors } from '../utils/formatting';
 import { FactoryAgent, validateUIMessages } from '@qwery/agent-factory-sdk';
 import { nanoid } from 'nanoid';
+import { v4 as uuidv4 } from 'uuid';
 
 export class InteractiveRepl {
   private rl: Interface | null = null;
@@ -248,9 +249,29 @@ export class InteractiveRepl {
       if (!this.agent || !this.conversationId) {
         this.conversationId = `cli-agent-${nanoid()}`;
         const repositories = this.container.getRepositories();
+        const workspace = this.container.getWorkspace();
+
+        // Create the conversation before creating the FactoryAgent
+        // (FactoryAgent needs the conversation to exist when persisting messages)
+        const conversationId = uuidv4();
+        const now = new Date();
+        await repositories.conversation.create({
+          id: conversationId,
+          slug: this.conversationId,
+          title: 'CLI Interactive Conversation',
+          projectId: workspace?.projectId ?? uuidv4(),
+          taskId: uuidv4(),
+          datasources: [],
+          createdAt: now,
+          updatedAt: now,
+          createdBy: workspace?.userId ?? 'cli',
+          updatedBy: workspace?.userId ?? 'cli',
+        });
+
         this.agent = new FactoryAgent({
           conversationSlug: this.conversationId,
           repositories,
+          telemetry: this.container.telemetry,
         });
       }
       const agent = this.agent;

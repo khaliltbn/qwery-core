@@ -13,6 +13,7 @@ import { createDriverForDatasource } from '../extensions/driver-factory';
 import { CliUsageError } from '../utils/errors';
 import { nanoid } from 'nanoid';
 import { v4 as uuidv4 } from 'uuid';
+import type { TelemetryManager } from '@qwery/telemetry-opentelemetry';
 
 export interface RunCellOptions {
   datasource: Datasource;
@@ -30,6 +31,8 @@ export interface RunCellResult {
 const agents = new Map<string, FactoryAgent>();
 
 export class NotebookRunner {
+  constructor(private readonly telemetry?: TelemetryManager) {}
+
   public async testConnection(datasource: Datasource): Promise<void> {
     const driver = await createDriverForDatasource(datasource);
     try {
@@ -95,6 +98,7 @@ export class NotebookRunner {
         agent = new FactoryAgent({
           conversationSlug,
           repositories: repositories as FactoryAgentOptions['repositories'],
+          telemetry: this.telemetry,
         });
         agents.set(options.datasource.id, agent);
       }
