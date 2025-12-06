@@ -138,6 +138,7 @@ export const createStateMachine = (
                   id: 'GET_INTENT',
                   input: ({ context }: { context: AgentContext }) => ({
                     inputMessage: context.inputMessage,
+                    model: context.model,
                   }),
                   onDone: [
                     {
@@ -286,6 +287,7 @@ export const createStateMachine = (
                         inputMessage: context.inputMessage,
                         conversationId: context.conversationId,
                         previousMessages: context.previousMessages,
+                        model: context.model,
                       }),
                       onDone: {
                         target: 'completed',

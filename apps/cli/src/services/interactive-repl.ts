@@ -352,7 +352,11 @@ export class InteractiveRepl {
       console.log('\n' + colored('💬 Processing...', colors.brand) + '\n');
 
       // Get the stream from readDataAgent (returns StreamTextResult)
-      const streamResult = await readDataAgent(this.conversationId, messages);
+      const streamResult = await readDataAgent(
+        this.conversationId,
+        messages,
+        'azure/gpt-5-mini',
+      );
 
       // Iterate over the stream directly using AI SDK's stream methods
       let fullText = '';
