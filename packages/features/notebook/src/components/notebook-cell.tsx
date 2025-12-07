@@ -448,7 +448,7 @@ function NotebookCellComponent({
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-7 w-7"
+                  className="h-7 w-7 cursor-pointer"
                   onClick={handleRunQuery}
                   disabled={!query.trim() || isLoading || !selectedDatasource}
                   aria-label="Run query"

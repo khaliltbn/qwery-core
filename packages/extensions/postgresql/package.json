@@ -46,10 +46,11 @@
   "dependencies": {
     "@qwery/extensions-sdk": "workspace:*",
     "pg": "^8.13.1",
-    "zod": "^3.25.76"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/pg": "^8.11.10",
-    "vitest": "^4.0.7"
+    "@vitest/coverage-istanbul": "catalog:",
+    "vitest": "catalog:"
   }
 }

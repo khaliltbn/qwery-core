@@ -129,7 +129,6 @@ export default function NotebookPage() {
         return next;
       });
       setLoadingCellId(null);
-      toast.error(error.message);
     },
   );
 

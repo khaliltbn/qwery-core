@@ -90,7 +90,24 @@ async function ensureDriverRegistered(driver: DiscoveredDriver) {
 
 async function importModule(entryPath: string, runtime: DriverRuntime) {
   if (isBrowser || runtime === 'browser') {
-    return import(/* @vite-ignore */ entryPath);
+    // For browser extensions in /public, we need to use a fully dynamic import
+    // that Vite can't statically analyze. We construct the URL dynamically.
+    const baseUrl = window.location.origin;
+    const fullUrl = `${baseUrl}${entryPath}`;
+
+    // Use a template literal with a variable to prevent static analysis
+    // The SDK should be available in the app's module graph when the driver loads
+    try {
+      // Use dynamic import with Function constructor to prevent Vite from
+      // statically analyzing the import path
+      const dynamicImport = new Function('url', 'return import(url)');
+      return dynamicImport(fullUrl);
+    } catch (error) {
+      // If import fails, provide a helpful error message
+      throw new Error(
+        `Failed to load extension module ${entryPath}: ${error instanceof Error ? error.message : String(error)}. Make sure @qwery/extensions-sdk is available.`,
+      );
+    }
   }
   const { pathToFileURL } = await import('node:url');
   const url = pathToFileURL(entryPath).href;

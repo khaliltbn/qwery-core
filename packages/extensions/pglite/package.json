@@ -6,7 +6,7 @@
   "main": "./dist/extension.js",
   "scripts": {
     "lint": "echo \"no lint configured\"",
-    "test": "vitest run --coverage",
+    "test": "vitest run --logHeapUsage --coverage --passWithNoTests",
     "build": "tsc -p tsconfig.build.json"
   },
   "contributes": {
@@ -47,6 +47,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "vitest": "^4.0.7"
+    "@vitest/coverage-istanbul": "catalog:",
+    "vitest": "catalog:"
   }
 }

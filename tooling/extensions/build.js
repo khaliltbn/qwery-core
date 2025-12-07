@@ -3,6 +3,19 @@ const path = require('node:path');
 
 const here = __dirname;
 
+// Try to load esbuild from node_modules
+let esbuild;
+try {
+  // Try to resolve esbuild - it might be in .pnpm or regular node_modules
+  require.resolve('esbuild');
+  esbuild = require('esbuild');
+} catch (error) {
+  // If esbuild is not available, we'll fall back to copying files
+  console.warn(
+    '[extensions-build] esbuild not found, will copy files without bundling. Install esbuild to enable bundling.',
+  );
+}
+
 const extensionsRoot = path.resolve(
   here,
   '..',
@@ -55,9 +68,76 @@ async function main() {
           if (await fileExists(sourcePath)) {
             const driverOutDir = path.join(publicRoot, driver.id);
             await fs.mkdir(driverOutDir, { recursive: true });
-            const dest = path.join(driverOutDir, path.basename(entryFile));
-            await fs.copyFile(sourcePath, dest);
-            copiedEntry = path.basename(entryFile);
+            const outputFileName = path.basename(entryFile);
+            const dest = path.join(driverOutDir, outputFileName);
+
+            // Bundle the extension with esbuild to include all dependencies
+            if (esbuild) {
+              try {
+                const nodeModulesPath = path.resolve(
+                  pkgDir,
+                  '..',
+                  '..',
+                  '..',
+                  'node_modules',
+                );
+                await esbuild.build({
+                  entryPoints: [sourcePath],
+                  bundle: true,
+                  format: 'esm',
+                  platform: 'browser',
+                  target: 'es2020',
+                  outfile: dest,
+                  external: [
+                    // Externalize workspace packages - they should be available in the app
+                    // The SDK will be available at runtime via the app's module system
+                    '@qwery/extensions-sdk',
+                    '@qwery/domain',
+                    '@qwery/ui',
+                    'react',
+                    'react-dom',
+                  ],
+                  // Mark all node: imports as external - they're Node.js built-ins
+                  // esbuild will handle this automatically for browser platform
+                  // but we need to ensure they don't cause errors
+                  alias: {
+                    // Replace node: imports with empty modules for browser
+                    'node:fs/promises': 'data:text/javascript,export default {}',
+                    'node:path': 'data:text/javascript,export default {}',
+                    'node:url': 'data:text/javascript,export default {}',
+                  },
+                  banner: {
+                    js: `
+// This file is bundled for browser use
+// External dependencies (@qwery/extensions-sdk, react, etc.) must be available at runtime
+`,
+                  },
+                  resolveExtensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
+                  sourcemap: false,
+                  minify: false,
+                  treeShaking: true,
+                  logLevel: 'silent',
+                  nodePaths: [nodeModulesPath],
+                  packages: 'bundle', // Bundle npm packages, but externalize workspace ones
+                });
+                console.log(
+                  `[extensions-build] Bundled browser driver ${driver.id} to ${dest}`,
+                );
+                copiedEntry = outputFileName;
+              } catch (error) {
+                console.error(
+                  `[extensions-build] Failed to bundle browser driver ${driver.id}:`,
+                  error.message,
+                );
+                // Fallback to copying the file as-is
+                await fs.copyFile(sourcePath, dest);
+                copiedEntry = outputFileName;
+              }
+            } else {
+              // Fallback to copying the file as-is if esbuild is not available
+              await fs.copyFile(sourcePath, dest);
+              copiedEntry = outputFileName;
+            }
           } else {
             console.warn(
               `[extensions-build] Missing entry for browser driver ${driver.id} at ${sourcePath}`,
