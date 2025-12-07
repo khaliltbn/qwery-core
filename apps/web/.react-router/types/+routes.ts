@@ -138,6 +138,12 @@ type Pages = {
       "slug": string;
     };
   };
+  "/ds/:slug/tables/:id": {
+    params: {
+      "slug": string;
+      "id": string;
+    };
+  };
   "/ds/:slug/schema": {
     params: {
       "slug": string;
@@ -153,7 +159,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/version" | "/healthcheck" | "/qwery/*" | "/api/chat/:slug" | "/api/organizations" | "/api/organizations/:id" | "/api/projects" | "/api/projects/:id" | "/api/datasources/:id?" | "/api/driver/command" | "/api/extensions/registry" | "/api/notebooks" | "/api/notebooks/:id" | "/api/conversations" | "/api/conversations/:id" | "/api/messages" | "/api/usage" | "/organizations" | "/org/:slug" | "/prj/:slug" | "/notebook/:slug" | "/prj/:slug/ds" | "/prj/:slug/ds/new" | "/prj/:slug/ds/:id/new" | "/prj/:slug/playground" | "/prj/:slug/c" | "/c/:slug" | "/ds/:slug" | "/ds/:slug/tables" | "/ds/:slug/schema" | "/ds/:slug/settings";
+    page: "/" | "/version" | "/healthcheck" | "/qwery/*" | "/api/chat/:slug" | "/api/organizations" | "/api/organizations/:id" | "/api/projects" | "/api/projects/:id" | "/api/datasources/:id?" | "/api/driver/command" | "/api/extensions/registry" | "/api/notebooks" | "/api/notebooks/:id" | "/api/conversations" | "/api/conversations/:id" | "/api/messages" | "/api/usage" | "/organizations" | "/org/:slug" | "/prj/:slug" | "/notebook/:slug" | "/prj/:slug/ds" | "/prj/:slug/ds/new" | "/prj/:slug/ds/:id/new" | "/prj/:slug/playground" | "/prj/:slug/c" | "/c/:slug" | "/ds/:slug" | "/ds/:slug/tables" | "/ds/:slug/tables/:id" | "/ds/:slug/schema" | "/ds/:slug/settings";
   };
   "routes/version.ts": {
     id: "routes/version";
@@ -285,7 +291,7 @@ type RouteFiles = {
   };
   "routes/datasource/layout.tsx": {
     id: "routes/datasource/layout";
-    page: "/ds/:slug" | "/ds/:slug/tables" | "/ds/:slug/schema" | "/ds/:slug/settings";
+    page: "/ds/:slug" | "/ds/:slug/tables" | "/ds/:slug/tables/:id" | "/ds/:slug/schema" | "/ds/:slug/settings";
   };
   "routes/datasource/index.tsx": {
     id: "routes/datasource/index";
@@ -294,6 +300,10 @@ type RouteFiles = {
   "routes/datasource/tables.tsx": {
     id: "routes/datasource/tables";
     page: "/ds/:slug/tables";
+  };
+  "routes/datasource/table.tsx": {
+    id: "routes/datasource/table";
+    page: "/ds/:slug/tables/:id";
   };
   "routes/datasource/schema.tsx": {
     id: "routes/datasource/schema";
@@ -342,6 +352,7 @@ type RouteModules = {
   "routes/datasource/layout": typeof import("./app/routes/datasource/layout.tsx");
   "routes/datasource/index": typeof import("./app/routes/datasource/index.tsx");
   "routes/datasource/tables": typeof import("./app/routes/datasource/tables.tsx");
+  "routes/datasource/table": typeof import("./app/routes/datasource/table.tsx");
   "routes/datasource/schema": typeof import("./app/routes/datasource/schema.tsx");
   "routes/datasource/settings": typeof import("./app/routes/datasource/settings.tsx");
 };

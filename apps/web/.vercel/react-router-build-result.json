@@ -41,6 +41,7 @@
       "routes/project/conversation/conversation": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/datasource/index": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/datasource/tables": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/datasource/table": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/datasource/schema": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/datasource/settings": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0"
     },
@@ -293,6 +294,13 @@
         "path": "ds/:slug/tables",
         "config": {}
       },
+      "routes/datasource/table": {
+        "id": "routes/datasource/table",
+        "parentId": "routes/datasource/layout",
+        "file": "app/routes/datasource/table.tsx",
+        "path": "ds/:slug/tables/:id",
+        "config": {}
+      },
       "routes/datasource/schema": {
         "id": "routes/datasource/schema",
         "parentId": "routes/datasource/layout",
@@ -531,6 +539,12 @@
         "file": "routes/datasource/tables.tsx",
         "path": "ds/:slug/tables"
       },
+      "routes/datasource/table": {
+        "id": "routes/datasource/table",
+        "parentId": "routes/datasource/layout",
+        "file": "routes/datasource/table.tsx",
+        "path": "ds/:slug/tables/:id"
+      },
       "routes/datasource/schema": {
         "id": "routes/datasource/schema",
         "parentId": "routes/datasource/layout",
@@ -699,6 +713,10 @@
               {
                 "file": "routes/datasource/tables.tsx",
                 "path": "ds/:slug/tables"
+              },
+              {
+                "file": "routes/datasource/table.tsx",
+                "path": "ds/:slug/tables/:id"
               },
               {
                 "file": "routes/datasource/schema.tsx",
