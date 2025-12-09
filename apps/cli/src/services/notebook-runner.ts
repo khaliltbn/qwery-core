@@ -1,7 +1,7 @@
 import type { Datasource } from '@qwery/domain/entities';
 import { createDriverForDatasource } from '../extensions/driver-factory';
 import { CliUsageError } from '../utils/errors';
-import type { TelemetryManager } from '@qwery/telemetry-opentelemetry';
+import type { TelemetryManager } from '@qwery/telemetry/opentelemetry';
 
 export interface RunCellOptions {
   datasource: Datasource;

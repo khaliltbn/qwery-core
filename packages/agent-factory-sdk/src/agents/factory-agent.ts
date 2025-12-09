@@ -9,8 +9,8 @@ import {
   UsagePersistenceService,
   MessagePersistenceService,
 } from '../services';
-import type { TelemetryManager } from '@qwery/telemetry-opentelemetry';
-import { AGENT_EVENTS } from '@qwery/telemetry-opentelemetry/events/agent.events';
+import type { TelemetryManager } from '@qwery/telemetry/opentelemetry';
+import { AGENT_EVENTS } from '@qwery/telemetry/opentelemetry/events/agent.events';
 import { context, trace, type SpanContext } from '@opentelemetry/api';
 
 export interface FactoryAgentOptions {

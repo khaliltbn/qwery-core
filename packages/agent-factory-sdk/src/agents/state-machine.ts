@@ -9,8 +9,8 @@ import { loadContext } from './actors/load-context.actor';
 import { MessagePersistenceService } from '../services/message-persistence.service';
 import { Repositories } from '@qwery/domain/repositories';
 import { createCachedActor } from './utils/actor-cache';
-import type { TelemetryManager } from '@qwery/telemetry-opentelemetry';
-import { AGENT_EVENTS } from '@qwery/telemetry-opentelemetry/events/agent.events';
+import type { TelemetryManager } from '@qwery/telemetry/opentelemetry';
+import { AGENT_EVENTS } from '@qwery/telemetry/opentelemetry/events/agent.events';
 import type { UIMessage } from 'ai';
 import {
   context as otelContext,
