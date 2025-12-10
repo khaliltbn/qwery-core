@@ -26,3 +26,8 @@ export * from './data-grid';
 export * from './schema-visualizer';
 export * from './sql-query-visualizer';
 export * from './tool-error-visualizer';
+
+// Sheet management components
+export * from './sheets/available-sheets-visualizer';
+export * from './sheets/view-sheet-visualizer';
+export * from './sheets/view-sheet-error';

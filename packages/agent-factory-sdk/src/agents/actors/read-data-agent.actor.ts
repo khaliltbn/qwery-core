@@ -14,15 +14,16 @@ import { gsheetToDuckdb } from '../../tools/gsheet-to-duckdb';
 import { extractSchema } from '../../tools/extract-schema';
 import type { SimpleSchema } from '@qwery/domain/entities';
 import { runQuery } from '../../tools/run-query';
+import { listAvailableSheets } from '../../tools/list-available-sheets';
 import { viewSheet } from '../../tools/view-sheet';
+import { renameSheet } from '../../tools/rename-sheet';
+import { deleteSheet } from '../../tools/delete-sheet';
 import { READ_DATA_AGENT_PROMPT } from '../prompts/read-data-agent.prompt';
 import { buildBusinessContext } from '../../tools/build-business-context';
 import { enhanceBusinessContextInBackground } from './enhance-business-context.actor';
 import { generateChart, selectChartType } from '../tools/generate-chart';
 import { ChartTypeSchema } from '../types/chart.types';
 import { getSupportedChartTypes } from '../config/supported-charts';
-import { renameSheet } from '../../tools/rename-sheet';
-import { deleteSheet } from '../../tools/delete-sheet';
 import {
   registerSheetView,
   registerDatasourceView,
@@ -1393,6 +1394,7 @@ export const readDataAgent = async (
           };
         },
       }),
+<<<<<<< HEAD
       selectChartType: tool({
         description: `Select the best chart type (${getSupportedChartTypes().join(', ')}) for visualizing the query results. Uses business context to understand data semantics for better chart selection. This should be called before generateChart. IMPORTANT: Parameters must be at the top level: { queryResults: { columns: string[], rows: Array<Record> }, sqlQuery: string, userInput: string }`,
         inputSchema: z.object({
@@ -1635,10 +1637,18 @@ export const readDataAgent = async (
             columns: queryResults.columns,
           };
 
+=======
+      listAvailableSheets: tool({
+        description:
+          'List all available sheets/views in the database. Returns a list of sheet names and their types (view or table).',
+        inputSchema: z.object({}),
+        execute: async () => {
+>>>>>>> 94078ce ( AZIZ feat(agent): add sheet management tools to read-data agent)
           const workspace = getWorkspace();
           if (!workspace) {
             throw new Error('WORKSPACE environment variable is not set');
           }
+<<<<<<< HEAD
           const { join } = await import('node:path');
           const fileDir = join(workspace, conversationId);
           const businessContext = await loadBusinessContext(fileDir);
@@ -1651,6 +1661,74 @@ export const readDataAgent = async (
             businessContext,
           });
           return chartConfig;
+=======
+          const result = await listAvailableSheets({
+            conversationId,
+            workspace,
+          });
+          return result;
+        },
+      }),
+      renameSheet: tool({
+        description:
+          'Rename a sheet/view to give it a more meaningful name. Both oldSheetName and newSheetName are required.',
+        inputSchema: z.object({
+          oldSheetName: z.string(),
+          newSheetName: z.string(),
+        }),
+        execute: async ({ oldSheetName, newSheetName }) => {
+          const workspace = getWorkspace();
+          if (!workspace) {
+            throw new Error('WORKSPACE environment variable is not set');
+          }
+          const result = await renameSheet({
+            conversationId,
+            workspace,
+            oldSheetName,
+            newSheetName,
+          });
+          return result;
+        },
+      }),
+      deleteSheet: tool({
+        description:
+          'Delete one or more sheets/views from the database. Takes an array of sheet names to delete.',
+        inputSchema: z.object({
+          sheetNames: z.array(z.string()),
+        }),
+        execute: async ({ sheetNames }) => {
+          const workspace = getWorkspace();
+          if (!workspace) {
+            throw new Error('WORKSPACE environment variable is not set');
+          }
+          const result = await deleteSheet({
+            conversationId,
+            workspace,
+            sheetNames,
+          });
+          return result;
+        },
+      }),
+      viewSheet: tool({
+        description:
+          'View the contents of a sheet (first N rows). Shows the sheet data in a table format. Optionally specify a limit (default 50 rows).',
+        inputSchema: z.object({
+          sheetName: z.string(),
+          limit: z.number().optional(),
+        }),
+        execute: async ({ sheetName, limit }) => {
+          const workspace = getWorkspace();
+          if (!workspace) {
+            throw new Error('WORKSPACE environment variable is not set');
+          }
+          const result = await viewSheet({
+            conversationId,
+            workspace,
+            sheetName,
+            limit,
+          });
+          return result;
+>>>>>>> 94078ce ( AZIZ feat(agent): add sheet management tools to read-data agent)
         },
       }),
     },

@@ -55,6 +55,9 @@ import { ToolUIPart } from 'ai';
 import { SQLQueryVisualizer } from './sql-query-visualizer';
 import { SchemaVisualizer } from './schema-visualizer';
 import { ToolErrorVisualizer } from './tool-error-visualizer';
+import { AvailableSheetsVisualizer } from './sheets/available-sheets-visualizer';
+import { ViewSheetVisualizer } from './sheets/view-sheet-visualizer';
+import { ViewSheetError } from './sheets/view-sheet-error';
 
 export type TaskStatus = 'pending' | 'in-progress' | 'completed' | 'error';
 
@@ -681,6 +684,72 @@ export function ToolPart({ part, messageId, index }: ToolPartProps) {
       if (output?.schema) {
         return <SchemaVisualizer schema={output.schema} />;
       }
+    }
+
+    // Handle listAvailableSheets tool with AvailableSheetsVisualizer
+    if (part.type === 'tool-listAvailableSheets' && part.output) {
+      const output = part.output as
+        | {
+            sheets?: Array<{
+              name: string;
+              type: 'view' | 'table' | 'attached_table';
+            }>;
+            count?: number;
+          }
+        | null;
+      if (output?.sheets) {
+        // Map tool output to visualizer format
+        const mappedSheets = output.sheets.map((sheet) => ({
+          name: sheet.name,
+          type: sheet.type === 'attached_table' ? 'table' : sheet.type,
+        }));
+        return (
+          <AvailableSheetsVisualizer
+            data={{
+              sheets: mappedSheets,
+              message: `Found ${output.count ?? mappedSheets.length} sheet${(output.count ?? mappedSheets.length) !== 1 ? 's' : ''}`,
+            }}
+          />
+        );
+      }
+    }
+
+    // Handle viewSheet tool with ViewSheetVisualizer
+    if (part.type === 'tool-viewSheet' && part.output) {
+      const output = part.output as
+        | {
+            sheetName?: string;
+            columns?: string[];
+            rows?: Array<Record<string, unknown>>;
+            rowCount?: number;
+            limit?: number;
+            hasMore?: boolean;
+          }
+        | null;
+      if (output?.sheetName && output?.columns && output?.rows !== undefined) {
+        const displayedRows = output.rows.length;
+        const totalRows = output.rowCount ?? displayedRows;
+        return (
+          <ViewSheetVisualizer
+            data={{
+              sheetName: output.sheetName,
+              totalRows,
+              displayedRows,
+              columns: output.columns,
+              rows: output.rows,
+              message: output.hasMore
+                ? `Showing first ${displayedRows} of ${totalRows} rows`
+                : `Displaying all ${totalRows} rows`,
+            }}
+          />
+        );
+      }
+    }
+
+    // Handle viewSheet errors with ViewSheetError
+    if (part.type === 'tool-viewSheet' && part.state === 'output-error' && part.errorText) {
+      const input = part.input as { sheetName?: string } | null;
+      return <ViewSheetError errorText={part.errorText} sheetName={input?.sheetName} />;
     }
 
     // Default fallback to generic ToolOutput
