@@ -37,38 +37,9 @@ function injectHighlightStyles(): void {
       padding: 2px 4px !important;
       margin: -2px -4px !important;
       box-shadow: 0 0 0 0px transparent, 0 0 8px hsl(var(--primary, 221.2 83.2% 53.3%) / 0.25) !important;
-      transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), border-width 0.4s cubic-bezier(0.4, 0, 0.2, 1), outline-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), outline-width 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
-      animation: suggestion-highlight-pulse 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-      animation-fill-mode: forwards !important;
+      transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), border-width 0.4s cubic-bezier(0.4, 0, 0.2, 1), outline-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), outline-width 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
       z-index: 10 !important;
       overflow: visible !important;
-    }
-
-    @keyframes suggestion-highlight-pulse {
-      0% {
-        transform: scale(1);
-        border-width: 0px !important;
-        border-color: transparent !important;
-        outline-width: 0px !important;
-        outline-color: transparent !important;
-        box-shadow: 0 0 0 0px transparent, 0 0 0px hsl(var(--primary, 221.2 83.2% 53.3%) / 0.25);
-      }
-      40% {
-        transform: scale(1.008);
-        border-width: 2.5px !important;
-        border-color: hsl(var(--primary, 221.2 83.2% 53.3%)) !important;
-        outline-width: 2.5px !important;
-        outline-color: hsl(var(--primary, 221.2 83.2% 53.3%) / 0.6) !important;
-        box-shadow: 0 0 0 1.5px hsl(var(--primary, 221.2 83.2% 53.3%) / 0.15), 0 0 10px hsl(var(--primary, 221.2 83.2% 53.3%) / 0.3);
-      }
-      100% {
-        transform: scale(1);
-        border-width: 2px !important;
-        border-color: hsl(var(--primary, 221.2 83.2% 53.3%)) !important;
-        outline-width: 2px !important;
-        outline-color: hsl(var(--primary, 221.2 83.2% 53.3%)) !important;
-        box-shadow: 0 0 0 0px transparent, 0 0 8px hsl(var(--primary, 221.2 83.2% 53.3%) / 0.25);
-      }
     }
 
     [data-suggestion-id].suggestion-highlight-fade-out,
