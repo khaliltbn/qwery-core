@@ -1046,6 +1046,7 @@ export const createStateMachine = (
                           },
                         );
                         return {
+                          inputMessage: context.inputMessage,
                           conversationId: context.conversationSlug, // Use slug for conversation lookups
                           previousMessages: context.previousMessages,
                           model: context.model,
