@@ -1,26 +1,44 @@
 {
-  "$schema": "https://json.schemastore.org/tsconfig",
-  "extends": "@qwery/tsconfig/base.json",
-  "compilerOptions": {
-    "outDir": "./dist",
-    "module": "CommonJS",
-    "moduleResolution": "node",
-    "target": "ES2022",
-    "types": ["node", "electron"],
-    "noEmit": false,
-    "isolatedModules": false,
-    "allowJs": false,
-    "checkJs": false,
-    "sourceMap": true,
-    "rootDir": "./electron",
-    "baseUrl": "./",
-    "paths": {
-      "@qwery/shared/desktop": ["../../packages/shared/src/desktop/index.ts"],
-      "@qwery/shared/desktop/*": ["../../packages/shared/src/desktop/*"]
-    }
-  },
-  "files": [],
-  "include": ["electron/**/*.ts", "electron/**/*.d.ts"],
-  "exclude": ["dist", "node_modules"]
+    "extends": "@qwery/tsconfig/base.json",
+    "compilerOptions": {
+        "target": "ESNext",
+        "useDefineForClassFields": true,
+        "lib": [
+            "DOM",
+            "DOM.Iterable",
+            "ESNext"
+        ],
+        "allowJs": false,
+        "skipLibCheck": true,
+        "esModuleInterop": false,
+        "allowSyntheticDefaultImports": true,
+        "strict": true,
+        "forceConsistentCasingInFileNames": true,
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "noEmit": true,
+        "jsx": "react-jsx",
+        "baseUrl": ".",
+        "paths": {
+            "~/*": [
+                "./src/*"
+            ],
+            "@qwery/ui/*": [
+                "../../packages/ui/src/*"
+            ],
+            "@qwery/shared/*": [
+                "../../packages/shared/src/*"
+            ]
+        }
+    },
+    "include": [
+        "src"
+    ],
+    "references": [
+        {
+            "path": "./tsconfig.node.json"
+        }
+    ]
 }
-

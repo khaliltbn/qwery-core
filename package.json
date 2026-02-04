@@ -37,7 +37,7 @@
   "scripts": {
     "pretest": "pnpm exec playwright install chromium firefox webkit || true",
     "turbo": "turbo",
-    "postinstall": "manypkg fix && node node_modules/.pnpm/electron@39.1.1/node_modules/electron/install.js",
+    "postinstall": "manypkg fix",
     "build": "turbo build --cache-dir=.turbo",
     "clean": "git clean -xdf node_modules dist",
     "clean:workspaces": "turbo clean",
@@ -87,7 +87,6 @@
       "better-sqlite3",
       "core-js",
       "core-js-pure",
-      "electron",
       "esbuild",
       "msw",
       "onnxruntime-node",

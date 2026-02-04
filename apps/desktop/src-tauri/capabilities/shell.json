@@ -1,0 +1,19 @@
+{
+    "identifier": "shell-allow-node",
+    "description": "Allow spawning node",
+    "local": true,
+    "windows": [
+        "main"
+    ],
+    "permissions": [
+        {
+            "identifier": "shell:allow-spawn",
+            "allow": [
+                {
+                    "name": "node",
+                    "args": true
+                }
+            ]
+        }
+    ]
+}

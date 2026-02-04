@@ -1,0 +1,36 @@
+{
+    "$schema": "https://schemas.tauri.app/tauri.schema.json",
+    "productName": "desktop",
+    "version": "0.0.0",
+    "identifier": "com.qwery.desktop",
+    "build": {
+        "beforeDevCommand": "pnpm dev",
+        "beforeBuildCommand": "pnpm build:web",
+        "devUrl": "http://localhost:1420",
+        "frontendDist": "../dist/client"
+    },
+    "app": {
+        "windows": [
+            {
+                "label": "main",
+                "title": "Qwery Desktop",
+                "width": 1280,
+                "height": 800
+            }
+        ],
+        "security": {
+            "csp": null
+        }
+    },
+    "bundle": {
+        "active": true,
+        "targets": "all",
+        "icon": [
+            "icons/32x32.png",
+            "icons/128x128.png",
+            "icons/128x128@2x.png",
+            "icons/icon.icns",
+            "icons/icon.ico"
+        ]
+    }
+}
