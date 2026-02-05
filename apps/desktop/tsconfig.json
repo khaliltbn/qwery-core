@@ -9,6 +9,7 @@
             "ESNext"
         ],
         "allowJs": false,
+        "checkJs": false,
         "skipLibCheck": true,
         "esModuleInterop": false,
         "allowSyntheticDefaultImports": true,
@@ -24,12 +25,6 @@
         "paths": {
             "~/*": [
                 "./src/*"
-            ],
-            "@qwery/ui/*": [
-                "../../packages/ui/src/*"
-            ],
-            "@qwery/shared/*": [
-                "../../packages/shared/src/*"
             ]
         }
     },

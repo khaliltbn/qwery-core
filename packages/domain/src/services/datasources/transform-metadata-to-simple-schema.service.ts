@@ -8,9 +8,7 @@ import type {
  * Service to transform DatasourceMetadata to SimpleSchema format.
  * Groups tables by schema and formats table names for attached databases.
  */
-export class TransformMetadataToSimpleSchemaService
-  implements TransformMetadataToSimpleSchemaUseCase
-{
+export class TransformMetadataToSimpleSchemaService implements TransformMetadataToSimpleSchemaUseCase {
   /**
    * Transform DatasourceMetadata to a map of SimpleSchema objects.
    * The map key is in the format "databaseName.schemaName".

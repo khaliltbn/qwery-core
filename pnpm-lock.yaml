@@ -125,30 +125,18 @@ importers:
 
   apps/desktop:
     dependencies:
-      '@qwery/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       '@qwery/tailwind-config':
         specifier: workspace:*
         version: link:../../tooling/tailwind
-      '@qwery/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
       '@tauri-apps/api':
         specifier: ^2.10.1
         version: 2.10.1
-      '@tauri-apps/plugin-shell':
-        specifier: ^2.3.4
-        version: 2.3.4
       '@types/react':
         specifier: 'catalog:'
         version: 19.2.3
       '@types/react-dom':
         specifier: 'catalog:'
         version: 19.2.3(@types/react@19.2.3)
-      lucide-react:
-        specifier: ^0.552.0
-        version: 0.552.0(react@19.2.3)
       react:
         specifier: 'catalog:'
         version: 19.2.3
@@ -6233,9 +6221,6 @@ packages:
     resolution: {integrity: sha512-ZwT0T+7bw4+DPCSWzmviwq5XbXlM0cNoleDKOYPFYqcZqeKY31KlpoMW/MOON/tOFBPgi31a2v3w9gliqwL2+Q==}
     engines: {node: '>= 10'}
     hasBin: true
-
-  '@tauri-apps/plugin-shell@2.3.4':
-    resolution: {integrity: sha512-ktsRWf8wHLD17aZEyqE8c5x98eNAuTizR1FSX475zQ4TxaiJnhwksLygQz+AGwckJL5bfEP13nWrlTNQJUpKpA==}
 
   '@testing-library/dom@10.4.0':
     resolution: {integrity: sha512-pemlzrSESWbdAloYml3bAJMEfNh1Z7EduzqPKprCH5S341frlpYnUEW0H72dLxa6IsYr+mPno20GiSm+h9dEdQ==}
@@ -17438,10 +17423,6 @@ snapshots:
       '@tauri-apps/cli-win32-arm64-msvc': 2.10.0
       '@tauri-apps/cli-win32-ia32-msvc': 2.10.0
       '@tauri-apps/cli-win32-x64-msvc': 2.10.0
-
-  '@tauri-apps/plugin-shell@2.3.4':
-    dependencies:
-      '@tauri-apps/api': 2.10.1
 
   '@testing-library/dom@10.4.0':
     dependencies:

@@ -10,9 +10,7 @@ import {
   ProjectOutput,
 } from '../../usecases';
 
-export class GetProjectsByOrganizationIdService
-  implements GetProjectsByOrganizationIdUseCase
-{
+export class GetProjectsByOrganizationIdService implements GetProjectsByOrganizationIdUseCase {
   constructor(private readonly projectRepository: IProjectRepository) {}
 
   public async execute(orgId: string): Promise<ProjectOutput[]> {
@@ -22,9 +20,7 @@ export class GetProjectsByOrganizationIdService
   }
 }
 
-export class GetProjectsByOrganizationSlugService
-  implements GetProjectsByOrganizationSlugUseCase
-{
+export class GetProjectsByOrganizationSlugService implements GetProjectsByOrganizationSlugUseCase {
   constructor(
     private readonly projectRepository: IProjectRepository,
     private readonly organizationRepository: IOrganizationRepository,

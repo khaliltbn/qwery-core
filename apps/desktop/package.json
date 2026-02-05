@@ -7,19 +7,15 @@
         "preview": "vite preview",
         "tauri": "tauri",
         "dev": "vite",
-        "build": "vite build && cp -r ../web/build/client ./src-tauri/../dist && tauri build",
-        "build:web": "vite build && cp -r ../web/build/client ./dist",
+        "build": "pnpm build:web && tauri build",
+        "build:web": "pnpm --filter web build && cp -r ../web/build/client ./dist",
         "tauri:dev": "tauri dev"
     },
     "dependencies": {
-        "@qwery/shared": "workspace:*",
         "@qwery/tailwind-config": "workspace:*",
-        "@qwery/ui": "workspace:*",
         "@tauri-apps/api": "^2.10.1",
-        "@tauri-apps/plugin-shell": "^2.3.4",
         "@types/react": "catalog:",
         "@types/react-dom": "catalog:",
-        "lucide-react": "^0.552.0",
         "react": "catalog:",
         "react-dom": "catalog:",
         "tailwindcss": "4.1.16"

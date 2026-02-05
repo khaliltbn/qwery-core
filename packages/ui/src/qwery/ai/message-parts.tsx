@@ -823,11 +823,11 @@ export function ToolPart({
       // Check if we should show paste button (inline mode with shouldPaste flag)
       const shouldShowPasteButton = Boolean(
         shouldPaste === true &&
-          sqlQuery &&
-          onPasteToNotebook &&
-          notebookContext?.cellId !== undefined &&
-          notebookContext?.notebookCellType &&
-          notebookContext?.datasourceId,
+        sqlQuery &&
+        onPasteToNotebook &&
+        notebookContext?.cellId !== undefined &&
+        notebookContext?.notebookCellType &&
+        notebookContext?.datasourceId,
       );
 
       // Create paste handler callback
