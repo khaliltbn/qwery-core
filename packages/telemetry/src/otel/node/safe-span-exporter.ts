@@ -51,7 +51,11 @@ export class SafeOTLPSpanExporter implements SpanExporter {
                 `Falling back to console exporter.`,
             );
           }
-          this.consoleExporter.export(spans, resultCallback);
+          if (isDebugEnabled()) {
+            this.consoleExporter.export(spans, resultCallback);
+          } else {
+            resultCallback(result);
+          }
         } else {
           resultCallback(result);
         }
@@ -70,7 +74,14 @@ export class SafeOTLPSpanExporter implements SpanExporter {
       }
 
       if (this.errorCount >= this.ERROR_THRESHOLD) {
-        this.consoleExporter.export(spans, resultCallback);
+        if (isDebugEnabled()) {
+          this.consoleExporter.export(spans, resultCallback);
+        } else {
+          resultCallback({
+            code: 1,
+            error: error instanceof Error ? error : new Error(String(error)),
+          });
+        }
       } else {
         resultCallback({
           code: 1,
