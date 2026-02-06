@@ -61,6 +61,7 @@ export function createApp() {
         if (origin.startsWith('http://127.0.0.1:')) return origin;
         return origin;
       },
+      credentials: true,
     }),
   );
 

@@ -56,6 +56,7 @@
     "desktop:package": "pnpm --filter desktop package",
     "desktop:start": "pnpm --filter desktop start",
     "extensions:build": "node tooling/extensions/build.js",
+    "build:extensions-and-web": "turbo build --filter=@qwery/extension-* --filter=web --cache-dir=.turbo",
     "update": "pnpm update -r",
     "syncpack:list": "pnpm dlx syncpack list-mismatches",
     "syncpack:fix": "pnpm dlx syncpack fix-mismatches",
