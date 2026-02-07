@@ -96,6 +96,13 @@ export class FilteringSpanExporter implements SpanExporter {
     this.exporter.export(filteredSpans, resultCallback);
   }
 
+  async forceFlush(): Promise<void> {
+    const exp = this.exporter as SpanExporter & {
+      forceFlush?: () => Promise<void>;
+    };
+    return exp.forceFlush?.() ?? Promise.resolve();
+  }
+
   shutdown(): Promise<void> {
     return this.exporter.shutdown();
   }
