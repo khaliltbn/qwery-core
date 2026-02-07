@@ -5,6 +5,13 @@ import { MessagePersistenceService } from '../services/message-persistence.servi
 import { UsagePersistenceService } from '../services/usage-persistence.service';
 import type { Repositories } from '@qwery/domain/repositories';
 import type { TelemetryManager } from '@qwery/telemetry/otel';
+import {
+  createConversationAttributes,
+  createMessageAttributes,
+  endConversationSpanWithEvent,
+  endMessageSpanWithEvent,
+} from '@qwery/telemetry/otel';
+import { AGENT_EVENTS } from '@qwery/telemetry/events/agent.events';
 import { MessageRole } from '@qwery/domain/entities';
 import { createMessages, filterCompacted } from '../llm/message';
 import type { WithParts } from '../llm/message';
@@ -93,7 +100,7 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
     messages,
     model = getDefaultModel(),
     repositories,
-    telemetry: _telemetry,
+    telemetry,
     generateTitle = false,
     agentId: inputAgentId,
     onAsk,
@@ -113,6 +120,22 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
   const messagesApi = createMessages({
     messageRepository: repositories.message,
   });
+
+  const conversationAttrs = createConversationAttributes(
+    conversationSlug,
+    agentId,
+    messages.length,
+  );
+  const conversationSpan = telemetry.startSpan(
+    'agent.conversation',
+    conversationAttrs as unknown as Record<string, unknown>,
+  );
+  telemetry.captureEvent({
+    name: AGENT_EVENTS.CONVERSATION_STARTED,
+    attributes: conversationAttrs as unknown as Record<string, unknown>,
+  });
+  const conversationStartTime = Date.now();
+  let conversationSuccess = true;
 
   let step = 0;
   let responseToReturn: Response | null = null;
@@ -347,226 +370,309 @@ export async function loop(input: AgentSessionPromptInput): Promise<Response> {
             .join('\n\n')
         : agentInfo.systemPrompt;
 
-    const result = await LLM.stream({
-      model,
-      messages: messagesForLlm,
-      tools,
-      maxSteps: inputMaxSteps ?? agentInfo.steps ?? 5,
-      abortSignal: abortController.signal,
-      systemPrompt: systemPromptForLlm,
-      onFinish: closeMcp
-        ? async () => {
-            await closeMcp();
-          }
-        : undefined,
-    });
-
-    const streamResponse = result.toUIMessageStreamResponse({
-      generateMessageId: () => uuidv4(),
-      messageMetadata: ({
-        part,
-      }: {
-        part: {
-          type: string;
-          totalUsage?: {
-            inputTokens?: number;
-            outputTokens?: number;
-            reasoningTokens?: number;
-            cachedInputTokens?: number;
-          };
-        };
-      }) => {
-        if (part.type === 'finish' && part.totalUsage) {
-          const raw = part.totalUsage;
-          return {
-            tokens: {
-              input: raw.inputTokens ?? 0,
-              output: raw.outputTokens ?? 0,
-              reasoning: raw.reasoningTokens ?? 0,
-              cache: {
-                read: raw.cachedInputTokens ?? 0,
-                write: 0,
-              },
-            },
-            finish: 'stop',
-          };
-        }
-      },
-      onFinish: async ({ messages: finishedMessages }) => {
-        const totalUsage = await result.totalUsage;
-        const usagePersistenceService = new UsagePersistenceService(
-          repositories.usage,
-          repositories.conversation,
-          repositories.project,
-          conversationSlug,
-        );
-        usagePersistenceService
-          .persistUsage(totalUsage, model)
-          .catch(async (error) => {
-            const log = await getLogger();
-            log.error('[AgentSession] Failed to persist usage:', error);
-          });
-
-        const lastAssistant = [...finishedMessages]
-          .reverse()
-          .find((m) => m.role === 'assistant');
-        if (lastAssistant && totalUsage) {
-          const raw = totalUsage as {
-            inputTokens?: number;
-            outputTokens?: number;
-            reasoningTokens?: number;
-            cachedInputTokens?: number;
-          };
-          const meta =
-            lastAssistant.metadata && typeof lastAssistant.metadata === 'object'
-              ? (lastAssistant.metadata as Record<string, unknown>)
-              : {};
-          lastAssistant.metadata = {
-            ...meta,
-            tokens: {
-              input: raw.inputTokens ?? 0,
-              output: raw.outputTokens ?? 0,
-              reasoning: raw.reasoningTokens ?? 0,
-              cache: {
-                read: raw.cachedInputTokens ?? 0,
-                write: 0,
-              },
-            },
-            finish: 'stop',
-          };
-        }
-
-        const persistence = new MessagePersistenceService(
-          repositories.message,
-          repositories.conversation,
-          conversationSlug,
-        );
-        try {
-          const persistResult =
-            await persistence.persistMessages(finishedMessages);
-          if (persistResult.errors.length > 0) {
-            const log = await getLogger();
-            log.warn(
-              `[AgentSession] Assistant message persistence failed for ${conversationSlug}:`,
-              persistResult.errors.map((e) => e.message).join(', '),
-            );
-          }
-        } catch (error) {
-          const log = await getLogger();
-          log.warn(
-            `[AgentSession] Assistant message persistence threw for ${conversationSlug}:`,
-            error instanceof Error ? error.message : String(error),
-          );
-        }
-      },
-    });
-
-    if (!streamResponse.body) {
-      responseToReturn = new Response(null, { status: 204 });
-      break;
-    }
-
-    const firstUser = messages.find((m) => m.role === 'user');
-    const userMessageText = firstUser
-      ? (firstUser.parts
+    const lastUserMessageText = lastUserMessage
+      ? (lastUserMessage.parts
           ?.filter((p) => p.type === 'text')
           .map((p) => (p as { text: string }).text)
           .join(' ')
           .trim() ?? '')
       : '';
+    const messageAttrs = createMessageAttributes(
+      conversationSlug,
+      lastUserMessageText,
+      messages.length - 1,
+      'user',
+    );
+    const messageSpan = telemetry.startSpan(
+      'agent.message',
+      messageAttrs as unknown as Record<string, unknown>,
+    );
+    const messageStartTime = Date.now();
+    let messageSuccess = true;
 
-    if (!shouldGenerateTitle || !userMessageText) {
-      responseToReturn = new Response(streamResponse.body, {
-        headers: SSE_HEADERS,
-      });
-      break;
+    const turnSpan = telemetry.startSpan('agent.session.turn', {
+      'agent.conversation.id': conversationSlug,
+      'agent.session.agent_id': agentId,
+      'agent.session.step': String(step),
+    });
+    if (process.env.QWERY_TELEMETRY_DEBUG === 'true') {
+      logger.info(
+        `[Telemetry] agent.session.turn started (conversation=${conversationSlug}, agent=${agentId}, step=${step})`,
+      );
     }
-
-    const conv = conversation;
-    const stream = new ReadableStream({
-      async start(controller) {
-        const reader = streamResponse.body!.getReader();
-        const decoder = new TextDecoder();
-
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-              controller.close();
-              setTimeout(async () => {
-                try {
-                  const existing =
-                    await repositories.message.findByConversationId(conv.id);
-                  const userMessages = existing.filter(
-                    (msg) => msg.role === MessageRole.USER,
-                  );
-                  const assistantMessages = existing.filter(
-                    (msg) => msg.role === MessageRole.ASSISTANT,
-                  );
-
-                  if (
-                    userMessages.length !== 1 ||
-                    assistantMessages.length !== 1 ||
-                    conv.title !== 'New Conversation'
-                  ) {
-                    return;
-                  }
-
-                  const assistantMessage = assistantMessages[0];
-                  if (!assistantMessage) return;
-
-                  let assistantText = '';
-                  if (
-                    typeof assistantMessage.content === 'object' &&
-                    assistantMessage.content !== null &&
-                    'parts' in assistantMessage.content &&
-                    Array.isArray(assistantMessage.content.parts)
-                  ) {
-                    assistantText = assistantMessage.content.parts
-                      .filter((part: { type?: string }) => part.type === 'text')
-                      .map((part: { text?: string }) => part.text ?? '')
-                      .join(' ')
-                      .trim();
-                  }
-
-                  if (assistantText) {
-                    const title = await generateConversationTitle(
-                      userMessageText,
-                      assistantText,
-                    );
-                    if (title && title !== 'New Conversation') {
-                      await repositories.conversation.update({
-                        ...conv,
-                        title,
-                        updatedBy: conv.createdBy ?? 'system',
-                        updatedAt: new Date(),
-                      });
-                    }
-                  }
-                } catch (e) {
-                  logger.error('Failed to generate conversation title:', e);
-                }
-              }, 1000);
-              break;
+    let turnSuccess = true;
+    const llmSpan = telemetry.startSpan('agent.llm.call', {
+      'agent.conversation.id': conversationSlug,
+      'agent.session.agent_id': agentId,
+      'agent.llm.model': model,
+    });
+    try {
+      const result = await LLM.stream({
+        model,
+        messages: messagesForLlm,
+        tools,
+        maxSteps: inputMaxSteps ?? agentInfo.steps ?? 5,
+        abortSignal: abortController.signal,
+        systemPrompt: systemPromptForLlm,
+        onFinish: closeMcp
+          ? async () => {
+              await closeMcp();
             }
+          : undefined,
+      });
 
-            controller.enqueue(
-              new TextEncoder().encode(decoder.decode(value, { stream: true })),
+      const streamResponse = result.toUIMessageStreamResponse({
+        generateMessageId: () => uuidv4(),
+        messageMetadata: ({
+          part,
+        }: {
+          part: {
+            type: string;
+            totalUsage?: {
+              inputTokens?: number;
+              outputTokens?: number;
+              reasoningTokens?: number;
+              cachedInputTokens?: number;
+            };
+          };
+        }) => {
+          if (part.type === 'finish' && part.totalUsage) {
+            const raw = part.totalUsage;
+            return {
+              tokens: {
+                input: raw.inputTokens ?? 0,
+                output: raw.outputTokens ?? 0,
+                reasoning: raw.reasoningTokens ?? 0,
+                cache: {
+                  read: raw.cachedInputTokens ?? 0,
+                  write: 0,
+                },
+              },
+              finish: 'stop',
+            };
+          }
+        },
+        onFinish: async ({ messages: finishedMessages }) => {
+          const totalUsage = await result.totalUsage;
+          if (totalUsage && llmSpan.isRecording()) {
+            const input =
+              (totalUsage as { inputTokens?: number }).inputTokens ?? 0;
+            const output =
+              (totalUsage as { outputTokens?: number }).outputTokens ?? 0;
+            llmSpan.setAttribute('agent.llm.prompt.tokens', input);
+            llmSpan.setAttribute('agent.llm.completion.tokens', output);
+            llmSpan.setAttribute('agent.llm.total.tokens', input + output);
+            telemetry.endSpan(llmSpan, true);
+          }
+          const usagePersistenceService = new UsagePersistenceService(
+            repositories.usage,
+            repositories.conversation,
+            repositories.project,
+            conversationSlug,
+          );
+          usagePersistenceService
+            .persistUsage(totalUsage, model)
+            .catch(async (error) => {
+              const log = await getLogger();
+              log.error('[AgentSession] Failed to persist usage:', error);
+            });
+
+          const lastAssistant = [...finishedMessages]
+            .reverse()
+            .find((m) => m.role === 'assistant');
+          if (lastAssistant && totalUsage) {
+            const raw = totalUsage as {
+              inputTokens?: number;
+              outputTokens?: number;
+              reasoningTokens?: number;
+              cachedInputTokens?: number;
+            };
+            const meta =
+              lastAssistant.metadata &&
+              typeof lastAssistant.metadata === 'object'
+                ? (lastAssistant.metadata as Record<string, unknown>)
+                : {};
+            lastAssistant.metadata = {
+              ...meta,
+              tokens: {
+                input: raw.inputTokens ?? 0,
+                output: raw.outputTokens ?? 0,
+                reasoning: raw.reasoningTokens ?? 0,
+                cache: {
+                  read: raw.cachedInputTokens ?? 0,
+                  write: 0,
+                },
+              },
+              finish: 'stop',
+            };
+          }
+
+          const persistence = new MessagePersistenceService(
+            repositories.message,
+            repositories.conversation,
+            conversationSlug,
+          );
+          try {
+            const persistResult =
+              await persistence.persistMessages(finishedMessages);
+            if (persistResult.errors.length > 0) {
+              const log = await getLogger();
+              log.warn(
+                `[AgentSession] Assistant message persistence failed for ${conversationSlug}:`,
+                persistResult.errors.map((e) => e.message).join(', '),
+              );
+            }
+          } catch (error) {
+            const log = await getLogger();
+            log.warn(
+              `[AgentSession] Assistant message persistence threw for ${conversationSlug}:`,
+              error instanceof Error ? error.message : String(error),
             );
           }
-        } catch (e) {
-          controller.error(e);
-        } finally {
-          reader.releaseLock();
-        }
-      },
-    });
+        },
+      });
 
-    responseToReturn = new Response(stream, { headers: SSE_HEADERS });
-    break;
+      if (!streamResponse.body) {
+        responseToReturn = new Response(null, { status: 204 });
+        break;
+      }
+
+      const firstUser = messages.find((m) => m.role === 'user');
+      const userMessageText = firstUser
+        ? (firstUser.parts
+            ?.filter((p) => p.type === 'text')
+            .map((p) => (p as { text: string }).text)
+            .join(' ')
+            .trim() ?? '')
+        : '';
+
+      if (!shouldGenerateTitle || !userMessageText) {
+        responseToReturn = new Response(streamResponse.body, {
+          headers: SSE_HEADERS,
+        });
+        break;
+      }
+
+      const conv = conversation;
+      const stream = new ReadableStream({
+        async start(controller) {
+          const reader = streamResponse.body!.getReader();
+          const decoder = new TextDecoder();
+
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) {
+                controller.close();
+                setTimeout(async () => {
+                  try {
+                    const existing =
+                      await repositories.message.findByConversationId(conv.id);
+                    const userMessages = existing.filter(
+                      (msg) => msg.role === MessageRole.USER,
+                    );
+                    const assistantMessages = existing.filter(
+                      (msg) => msg.role === MessageRole.ASSISTANT,
+                    );
+
+                    if (
+                      userMessages.length !== 1 ||
+                      assistantMessages.length !== 1 ||
+                      conv.title !== 'New Conversation'
+                    ) {
+                      return;
+                    }
+
+                    const assistantMessage = assistantMessages[0];
+                    if (!assistantMessage) return;
+
+                    let assistantText = '';
+                    if (
+                      typeof assistantMessage.content === 'object' &&
+                      assistantMessage.content !== null &&
+                      'parts' in assistantMessage.content &&
+                      Array.isArray(assistantMessage.content.parts)
+                    ) {
+                      assistantText = assistantMessage.content.parts
+                        .filter(
+                          (part: { type?: string }) => part.type === 'text',
+                        )
+                        .map((part: { text?: string }) => part.text ?? '')
+                        .join(' ')
+                        .trim();
+                    }
+
+                    if (assistantText) {
+                      const title = await generateConversationTitle(
+                        userMessageText,
+                        assistantText,
+                      );
+                      if (title && title !== 'New Conversation') {
+                        await repositories.conversation.update({
+                          ...conv,
+                          title,
+                          updatedBy: conv.createdBy ?? 'system',
+                          updatedAt: new Date(),
+                        });
+                      }
+                    }
+                  } catch (e) {
+                    logger.error('Failed to generate conversation title:', e);
+                  }
+                }, 1000);
+                break;
+              }
+
+              controller.enqueue(
+                new TextEncoder().encode(
+                  decoder.decode(value, { stream: true }),
+                ),
+              );
+            }
+          } catch (e) {
+            controller.error(e);
+          } finally {
+            reader.releaseLock();
+          }
+        },
+      });
+
+      responseToReturn = new Response(stream, { headers: SSE_HEADERS });
+      break;
+    } catch (e) {
+      turnSuccess = false;
+      messageSuccess = false;
+      conversationSuccess = false;
+      throw e;
+    } finally {
+      if (llmSpan.isRecording()) {
+        telemetry.endSpan(llmSpan, turnSuccess);
+      }
+      if (process.env.QWERY_TELEMETRY_DEBUG === 'true') {
+        logger.info(
+          `[Telemetry] agent.session.turn ended (conversation=${conversationSlug}, success=${turnSuccess})`,
+        );
+      }
+      telemetry.endSpan(turnSpan, turnSuccess);
+      endMessageSpanWithEvent(
+        telemetry,
+        messageSpan,
+        conversationSlug,
+        messageStartTime,
+        messageSuccess,
+      );
+    }
   }
 
   await SessionCompaction.prune({ conversationSlug, repositories });
+
+  endConversationSpanWithEvent(
+    telemetry,
+    conversationSpan,
+    conversationSlug,
+    conversationStartTime,
+    conversationSuccess,
+  );
 
   if (responseToReturn !== null) return responseToReturn;
   return new Response(null, { status: 204 });
