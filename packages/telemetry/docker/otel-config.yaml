@@ -68,8 +68,9 @@ connectors:
     dimensions:
       - name: agent.conversation.id
       - name: agent.actor
+      - name: agent.llm.model
       - name: llm.total.tokens
-      - name: agent.llm.total.tokens  # For dashboard compatibility
+      - name: agent.llm.total.tokens
       - name: application.type
       - name: user.id
 
