@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 use tauri::Manager;
-use tauri_plugin_shell::process::CommandEvent;
 
 fn target_triple() -> &'static str {
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
@@ -16,8 +15,6 @@ fn target_triple() -> &'static str {
     #[allow(unreachable_code)]
     "aarch64-apple-darwin" // fallback
 }
-use tauri_plugin_shell::ShellExt;
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -27,27 +24,26 @@ pub fn run() {
                 .resolve("", tauri::path::BaseDirectory::Resource)
                 .expect("failed to resolve resource dir");
             let node_modules_path = resource_dir.join("node_modules");
-            let extensions_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("target")
-                .join("debug")
-                .join("extensions");
+            let extensions_dir = if cfg!(debug_assertions) {
+                PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("target")
+                    .join("debug")
+                    .join("extensions")
+            } else {
+                resource_dir.join("extensions")
+            };
 
             println!("Node modules path: {}", node_modules_path.to_str().unwrap());
 
-            // API server is a JS bundle - run it with Bun sidecar
             let target = target_triple();
             let api_server_name = format!("api-server-{}", target);
-            let api_server_path: PathBuf = if cfg!(debug_assertions) {
-                // Dev: binaries are in src-tauri/binaries/
-                PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("binaries").join(&api_server_name)
+            let bun_name = format!("bun-{}", target);
+            let (bun_path, api_server_path): (PathBuf, PathBuf) = if cfg!(debug_assertions) {
+                let binaries = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("binaries");
+                (binaries.join(&bun_name), binaries.join(&api_server_name))
             } else {
-                // Prod: sidecars are next to the executable
-                let exe_dir = std::env::current_exe()
-                    .expect("failed to get executable path")
-                    .parent()
-                    .expect("failed to get executable dir")
-                    .to_path_buf();
-                exe_dir.join(&api_server_name)
+                let binaries = resource_dir.join("binaries");
+                (binaries.join(&bun_name), binaries.join(&api_server_name))
             };
 
             let storage_dir = app
@@ -57,15 +53,20 @@ pub fn run() {
                 .join(".qwery")
                 .join("storage");
 
-            // Load .env from app root so API server gets AZURE_* etc. (Tauri may not inherit from dotenv-cli)
+            // In dev, load from source tree. In prod, load from ~/.qwery/.env (user-editable on all platforms).
+            #[cfg(debug_assertions)]
             let env_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join(".env");
+            #[cfg(not(debug_assertions))]
+            let env_path = app
+                .path()
+                .home_dir()
+                .expect("failed to resolve home dir")
+                .join(".qwery")
+                .join(".env");
             let _ = dotenvy::from_path(env_path);
 
-            let (mut rx, _child) = app
-                .shell()
-                .sidecar("bun")
-                .expect("failed to create bun command")
-                .args([api_server_path.to_str().expect("api-server path")])
+            let _child = std::process::Command::new(&bun_path)
+                .arg(&api_server_path)
                 .envs(std::env::vars_os())
                 .env("QWERY_STORAGE_DIR", storage_dir.to_str().expect("storage path"))
                 .env(
@@ -76,24 +77,6 @@ pub fn run() {
                 .env("LOGGER", "pino")
                 .spawn()
                 .expect("Failed to spawn API server");
-
-            // Optional: Log server output in development
-            #[cfg(debug_assertions)]
-            {
-                tauri::async_runtime::spawn(async move {
-                    while let Some(event) = rx.recv().await {
-                        match event {
-                            CommandEvent::Stdout(line) => {
-                                println!("API Server: {}", String::from_utf8_lossy(&line));
-                            }
-                            CommandEvent::Stderr(line) => {
-                                eprintln!("API Server Error: {}", String::from_utf8_lossy(&line));
-                            }
-                            _ => {}
-                        }
-                    }
-                });
-            }
 
             // Wait for server to be ready by checking if port is listening
             tauri::async_runtime::spawn(async move {

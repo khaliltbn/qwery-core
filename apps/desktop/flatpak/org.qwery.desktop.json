@@ -1,0 +1,42 @@
+{
+  "app-id": "run.qwery.desktop",
+  "runtime": "org.gnome.Platform",
+  "runtime-version": "48",
+  "sdk": "org.gnome.Sdk",
+  "command": "qweryApp",
+  "modules": [
+    {
+      "name": "qweryApp",
+      "buildsystem": "simple",
+      "build-options": {
+        "build-args": ["--share=network"]
+      },
+      "build-commands": [
+        "bash -c 'curl -sSf https://sh.rustup.rs | sh -s -- -y -q --default-toolchain stable && . \"$HOME/.cargo/env\" && cd apps/desktop/src-tauri && cargo build --release'",
+        "install -Dm755 apps/desktop/src-tauri/target/release/qweryApp /app/bin/qweryApp",
+        "test -d apps/web/public/extensions && cp -r apps/web/public/extensions /app/bin/",
+        "test -f apps/desktop/src-tauri/binaries/bun-x86_64-unknown-linux-gnu || (echo 'ERROR: Missing apps/desktop/src-tauri/binaries/. From repo root run: pnpm --filter desktop build' && exit 1)",
+        "cp -r apps/desktop/src-tauri/binaries /app/bin/",
+        "test -d apps/desktop/src-tauri/binaries/node_modules && cp -r apps/desktop/src-tauri/binaries/node_modules /app/bin/"
+      ],
+      "sources": [
+        {
+          "type": "dir",
+          "path": "../../.."
+        }
+      ]
+    }
+  ],
+  "finish-args": [
+    "--share=network",
+    "--socket=x11",
+    "--socket=wayland",
+    "--device=dri",
+    "--filesystem=home",
+    "--talk-name=org.freedesktop.Notifications",
+    "--env=WEBKIT_DISABLE_DMABUF_RENDERER=1",
+    "--env=WEBKIT_DISABLE_COMPOSITING_MODE=1",
+    "--env=GDK_BACKEND=x11",
+    "--env=WAYLAND_DISPLAY="
+  ]
+}

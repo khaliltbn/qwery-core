@@ -132,7 +132,7 @@ export default defineConfig(async () => ({
       }
       : undefined,
     watch: {
-      ignored: ["**/src-tauri/**", "**/target/**", "**/build/**"],
+      ignored: ["**/src-tauri/**", "**/target/**", "**/build/**","**/flatpak/build-dir/**", "**/.flatpak-builder/**"],
     },
   },
   optimizeDeps: {
