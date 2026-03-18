@@ -2,14 +2,19 @@
 /**
  * Downloads Bun binary for the current platform to src-tauri/binaries/ for Tauri sidecar.
  * Run from apps/desktop: node scripts/download-bun.js
+ * Verifies download with SHA-256 from release SHASUMS256.txt before writing to disk.
  */
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BUN_VERSION = '1.3.9';
+// Bun on Windows occasionally has crash regressions; keep it overridable and
+// allow pinning a different patch version per platform.
+const DEFAULT_BUN_VERSION = '1.3.9';
+const WINDOWS_BUN_VERSION = '1.3.8';
 const BINARIES_DIR = path.resolve(__dirname, '../src-tauri/binaries');
 
 const TARGET_TO_BUN_ZIP = {
@@ -50,6 +55,12 @@ async function downloadBun() {
     process.exit(1);
   }
 
+  const bunVersion =
+    process.env.BUN_VERSION ||
+    (process.platform === 'win32'
+      ? process.env.BUN_VERSION_WINDOWS || WINDOWS_BUN_VERSION
+      : DEFAULT_BUN_VERSION);
+
   const ext = process.platform === 'win32' ? '.exe' : '';
   const outputName = `bun-${target}${ext}`;
   const outputPath = path.join(BINARIES_DIR, outputName);
@@ -59,7 +70,7 @@ async function downloadBun() {
     return;
   }
 
-  const url = `https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/${zipName}`;
+  const url = `https://github.com/oven-sh/bun/releases/download/bun-v${bunVersion}/${zipName}`;
   console.log(`Downloading Bun for ${target}...`);
 
   const response = await fetch(url);
@@ -70,6 +81,25 @@ async function downloadBun() {
 
   const arrayBuffer = await response.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
+
+  const baseUrl = `https://github.com/oven-sh/bun/releases/download/bun-v${bunVersion}`;
+  const sumsRes = await fetch(`${baseUrl}/SHASUMS256.txt`);
+  if (!sumsRes.ok) {
+    console.error('❌ Failed to fetch checksums');
+    process.exit(1);
+  }
+  const sumsText = await sumsRes.text();
+  const expectedLine = sumsText.split('\n').find((l) => l.endsWith(zipName));
+  if (!expectedLine) {
+    console.error(`❌ No checksum for ${zipName} in SHASUMS256.txt`);
+    process.exit(1);
+  }
+  const expectedHash = expectedLine.slice(0, 64);
+  const actualHash = crypto.createHash('sha256').update(buffer).digest('hex');
+  if (actualHash !== expectedHash) {
+    console.error(`❌ Checksum mismatch for ${zipName}`);
+    process.exit(1);
+  }
 
   const tmpZip = path.join(BINARIES_DIR, `bun-tmp-${Date.now()}.zip`);
   const tmpDir = path.join(BINARIES_DIR, `bun-tmp-${Date.now()}`);
